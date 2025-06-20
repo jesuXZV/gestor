@@ -267,10 +267,33 @@
             <h5 class="modal-title" id="ajustesModalLabel">Ajustes</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
-          <div class="modal-body">
-            <!-- Aquí puedes poner tu formulario de ajustes o lo que necesites -->
-            <p>Contenido de ajustes aquí.</p>
-          </div>
+    <form id="formAjustes">
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" id="labelTema">Tema</label>
+          <select class="form-select" name="tema">
+            <option value="claro">Claro</option>
+            <option value="oscuro">Oscuro</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" id="labelIdioma">Idioma</label>
+          <select class="form-select" name="idioma">
+            <option value="es">Español</option>
+            <option value="en">Inglés</option>
+          </select>
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="notiEmail" name="notificaciones">
+          <label class="form-check-label" id="labelNotificaciones" for="notiEmail">Recibir notificaciones por correo</label>
+        </div>
+        <div id="mensajeAjustes" class="text-success fw-bold"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelar" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-success" id="btnGuardar">Guardar cambios</button>
+      </div>
+    </form>
         </div>
       </div>
     </div>
@@ -278,7 +301,7 @@
     <!-- Modal de Perfil -->
     <div class="modal fade" id="perfilModal" tabindex="-1" aria-labelledby="perfilModalLabel" aria-hidden="true">
       <div class="modal-dialog">
-        <form method="POST" enctype="multipart/form-data" id="formPerfil">
+        <form method="POST" action="{{ url_for('actualizar_perfil') }}" enctype="multipart/form-data" id="formPerfil">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="perfilModalLabel">Editar Perfil</h5>
@@ -298,11 +321,13 @@
                 <input class="form-control" type="file" id="avatar" name="avatar" accept="image/*">
                 <div class="mt-2">
                   <label>Avatar actual:</label><br>
-                  <img id="previewAvatar" src="/ruta/a/avatar.jpg" alt="Avatar" style="width:70px;height:70px;border-radius:50%;">
+                  <img id="avatarActual" src="{{ url_for('static', filename='avatars/' ~ current_user.id ~ '.png') }}"
+                       onerror="this.src='/static/avatars/default.png'"
+                       alt="Avatar actual" style="width:70px;height:70px;border-radius:50%;">
                 </div>
                 <div class="mt-2">
-                  <label>Vista previa:</label>
-                  <div id="vistaPrevia">Vista previa</div>
+                  <label>Vista previa:</label><br>
+                  <img id="imgVistaPrevia" class="rounded-circle border" style="width:70px;height:70px" alt="Vista previa">
                 </div>
               </div>
               <div id="mensajePerfil" class="mt-2"></div>
@@ -327,14 +352,12 @@
         const receptorSelect = document.getElementById("chatbox-profesor");
 
         async function cargarMensajes(profesorId) {
-          const res = await fetch("/mensajes_profesor/" + profesorId);
+          if (!profesorId) return;
+          const res = await fetch(`/mensajes_con/${profesorId}`);
           const data = await res.json();
           msgBox.innerHTML = "";
           data.forEach((msg) => {
-            const div = document.createElement("div");
-            div.className = "mb-2";
-            div.innerHTML = `<strong>${msg.emisor}:</strong> ${msg.mensaje}`;
-            msgBox.appendChild(div);
+            msgBox.innerHTML += `<div><strong>${msg.emisor}:</strong> ${msg.mensaje}</div>`;
           });
           msgBox.scrollTop = msgBox.scrollHeight;
         }
@@ -402,23 +425,34 @@
           });
 
         // Cuando cambias de profesor seleccionado en el select
-        document
-          .getElementById("chatbox-profesor")
-          .addEventListener("change", function () {
-            cargarMensajes(this.value); // this.value = id del profesor seleccionado
+        const formPerfil = document.getElementById("formPerfil");
+        if (formPerfil) {
+          formPerfil.addEventListener("submit", async (ev) => {
+            ev.preventDefault();
+            const res = await fetch(formPerfil.action, { method: "POST", body: new FormData(formPerfil) });
+            document.getElementById("mensajePerfil").textContent =
+              res.ok ? "Perfil actualizado" : "Error al actualizar";
           });
+          document.getElementById("avatar").addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (evt) => {
+                document.getElementById("imgVistaPrevia").src = evt.target.result;
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+        }
 
-        // Función para cargar mensajes bidireccionales
-        async function cargarMensajes(profesorId) {
-          if (!profesorId) return;
-          const res = await fetch(`/mensajes_con/${profesorId}`);
-          const data = await res.json();
-          const msgBox = document.getElementById("chatbox-messages");
-          msgBox.innerHTML = "";
-          data.forEach((msg) => {
-            msgBox.innerHTML += `<div><strong>${msg.emisor}:</strong> ${msg.mensaje}</div>`;
+        const formAjustes = document.getElementById("formAjustes");
+        if (formAjustes) {
+          formAjustes.addEventListener("submit", async (ev) => {
+            ev.preventDefault();
+            const res = await fetch("/ajustes", { method: "POST", body: new FormData(formAjustes) });
+            document.getElementById("mensajeAjustes").textContent =
+              res.ok ? "Ajustes guardados" : "Error al guardar";
           });
-          msgBox.scrollTop = msgBox.scrollHeight;
         }
       });
     </script>
