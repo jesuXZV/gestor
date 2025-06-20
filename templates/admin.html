@@ -322,7 +322,7 @@
                 <div class="mt-2">
                   <label>Avatar actual:</label><br>
                   <img id="avatarActual" src="{{ url_for('static', filename='avatars/' ~ current_user.id ~ '.png') }}"
-                       onerror="this.src='/static/avatars/default.png'"
+                       onerror="this.onerror=null; this.src='/static/avatars/default.png'"
                        alt="Avatar actual" style="width:70px;height:70px;border-radius:50%;">
                 </div>
                 <div class="mt-2">
